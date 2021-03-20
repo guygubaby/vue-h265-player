@@ -10,7 +10,7 @@ npm i vue-h265-player
 
 ## Start
 
-1. copy decoder to public `cp src/components/h265-player/lib/libDecoder.wasm public/`
+1. copy decoder to public `cp node_modules/h265-player/lib/libDecoder.wasm public/`
 
 2. Introducing components
 
