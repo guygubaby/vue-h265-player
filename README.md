@@ -1,6 +1,6 @@
 # vue-h265-player
 
-## install
+## Install
 
 ```bash
 yarn add vue-h265-player
@@ -8,15 +8,18 @@ yarn add vue-h265-player
 npm i vue-h265-player
 ```
 
-## Using documents
+## Start
 
-1. copy `src/components/h265-player/lib/libDecoder.wasm` to your `public` path
+1. copy decoder to public `cp src/components/h265-player/lib/libDecoder.wasm public/`
+
 2. Introducing components
+
 3. configuration parameter
 
 props:
 
 1. url: 需要播放的链接，播放器会根据该值的变化自动重启
+2. maxRetryCount: 最大尝试重连次数，到达次数上限后会触发 `on-error`
 
 events:
 
@@ -36,21 +39,21 @@ events:
 </template>
 
 <script>
-  import H265Player from './components/h265-player/index.vue'
+  import H265Player from 'vue-h265-player';
 
   export default {
     name: 'App',
     components: {
-      H265Player
+      H265Player,
     },
     data: () => ({
-      url: ''
+      url: 'a h265 hls url',
     }),
     methods: {
       handleOnError(error) {
-        console.log('error: ', error)
-      }
-    }
-  }
+        console.log('error: ', error);
+      },
+    },
+  };
 </script>
 ```
