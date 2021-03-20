@@ -16,7 +16,7 @@ import {
   getRandomElemId,
   H265PlayerConstants,
   H265Player
-} from './utils/player'
+} from './utils/player.js'
 
 export default {
   props: {
@@ -39,26 +39,26 @@ export default {
   }),
   watch: {
     url: {
-      async handler (urlVal) {
-        if (urlVal) {
-          await this.$nextTick()
-          if (this.player) {
-            this.player.changeUrl(urlVal)
-          } else {
-            this.init(urlVal)
-          }
-        }
+      async handler (newUrl) {
+        if (!newUrl) return
+        await this.$nextTick()
+        const action = this.player ? this.hotBoot : this.coolBoot
+        action(newUrl)
       },
       immediate: true
     }
   },
   methods: {
-    changeUrl (url) {
+    hotBoot (url) {
+      if (!this.player) {
+        this.coolBoot(url)
+        return
+      }
       this.player.changeUrl(url)
     },
-    init (url) {
+    coolBoot (url) {
       const player = new H265Player(this.elemId, this.maxRetryCount)
-      // player.init()
+
       player.play(url)
 
       player.on(H265PlayerConstants.on_error, e => {
@@ -84,11 +84,13 @@ export default {
   created () {
     this.elemId = getRandomElemId()
     this.player = null
-  },
-  beforeDestroy () {
-    if (this.player) {
-      this.player.dispose()
-    }
+
+    this.$once('hook:beforeDestroy', () => {
+      if (this.player) {
+        this.player.dispose()
+        this.player = null
+      }
+    })
   }
 }
 </script>

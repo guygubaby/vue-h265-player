@@ -2,19 +2,12 @@ import WasmPlayer from '@easydarwin/easywasmplayer/EasyWasmPlayer.js';
 import Emittery from 'emittery';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
+import { logger } from './logger';
+/**
+ * 获取一个随机的 元素id,用作播放器的元素id
+ */
 export const getRandomElemId = () => {
     return uuidv4();
-};
-const log = {
-    info: (...args) => {
-        console.log('[h265-player]', ...args);
-    },
-    warn: (...args) => {
-        console.warn('[h265-player]', ...args);
-    },
-    fatal: (...args) => {
-        console.error('[h265-player]', ...args);
-    },
 };
 export var H265PlayerConstants;
 (function (H265PlayerConstants) {
@@ -28,6 +21,10 @@ export var H265PlayerConstants;
     H265PlayerConstants["on_player_cb"] = "on_player_cb";
 })(H265PlayerConstants || (H265PlayerConstants = {}));
 export class H265Player extends Emittery {
+    /**
+     * @param elemId 播放器元素id
+     * @param maxRetryCount 最大尝试重连次数
+     */
     constructor(elemId, maxRetryCount = 3) {
         super();
         this.timer = 0;
@@ -41,40 +38,42 @@ export class H265Player extends Emittery {
         if (this.player) {
             this.dispose();
         }
-        log.info('init player ~');
+        logger.verbose('init player ~');
         this.player = new WasmPlayer(null, this.elemId, this.playerCbFunc.bind(this), {
             Height: true,
-            HideKbs: true,
+            HideKbs: true
         });
     }
     play(url) {
         var _a;
         if (!url) {
-            log.fatal('url is not valid');
+            logger.fatal('url is not valid');
             this.dispose();
             return;
         }
-        log.info('start to play ~');
+        logger.ok('start to play ~');
+        // eslint-disable-next-line no-unused-expressions
         (_a = this.player) === null || _a === void 0 ? void 0 : _a.play(url, 1);
         this.currentUrl = url;
         this.startUrlHeartBeat();
     }
     pause() {
         var _a;
-        log.warn('player pause');
+        logger.warn('player pause');
         this.emit(H265PlayerConstants.on_pause);
+        // eslint-disable-next-line no-unused-expressions
         (_a = this.player) === null || _a === void 0 ? void 0 : _a.destroy();
         this.player = null;
         this.stopUrlHeartBeat();
     }
     resume() {
-        log.info('player resume');
+        logger.info('player resume');
         this.emit(H265PlayerConstants.on_resume);
         this.init();
         this.play(this.currentUrl);
     }
     playerCbFunc(type) {
-        log.info('player cb function：', type);
+        logger.info('player cb function：', type);
         this.emit(H265PlayerConstants.on_player_cb, type);
         switch (type) {
             case 'play':
@@ -83,7 +82,6 @@ export class H265Player extends Emittery {
                 break;
             case 'stop':
                 this.emit(H265PlayerConstants.on_stop);
-                this.dispose();
                 break;
             case 'endLoading':
                 this.emit(H265PlayerConstants.on_endLoading);
@@ -96,15 +94,16 @@ export class H265Player extends Emittery {
         }
     }
     changeUrl(newUrl) {
-        log.info('change url');
+        logger.info('change url');
         this.dispose();
         this.init();
         this.play(newUrl);
     }
     dispose() {
         var _a;
-        log.warn('dispose player');
+        logger.warn('dispose player');
         this.stopUrlHeartBeat();
+        // eslint-disable-next-line no-unused-expressions
         (_a = this.player) === null || _a === void 0 ? void 0 : _a.destroy();
         this.player = null;
         this.currentUrl = '';
@@ -112,7 +111,7 @@ export class H265Player extends Emittery {
         this.emit(H265PlayerConstants.on_dispose);
     }
     stopUrlHeartBeat() {
-        log.warn('stop url alive heartbeat');
+        logger.warn('stop url alive heartbeat');
         if (this.timer) {
             window.clearTimeout(this.timer);
         }
@@ -121,30 +120,35 @@ export class H265Player extends Emittery {
         this.stopUrlHeartBeat();
         const url = this.currentUrl;
         if (!url) {
-            log.fatal('start url heart beat failed , because of url is not ok, url is:', url);
+            logger.fatal('start url heart beat failed , because of url is not ok, url is:', url);
             return;
         }
-        const HEART_BEAT_TIMEOUT = 6 * 1000;
-        log.info(`start url alive heartbeat, every ${HEART_BEAT_TIMEOUT} seconds`);
+        const HEART_BEAT_TIMEOUT = 6 * 1000; // 每隔多少秒进行一次心跳检测
+        logger.verbose(`start url alive heartbeat, every ${HEART_BEAT_TIMEOUT} seconds`);
         checkUrlIsValid(url)
             .then(() => {
-            log.info('url heartbeat ok, prepare for next ~');
+            logger.ok('url heartbeat ok, prepare for next heartbeat ~');
+            // 如果正常，开始下一次检测
             this.timer = window.setTimeout(() => {
                 this.startUrlHeartBeat();
             }, HEART_BEAT_TIMEOUT);
         })
             .catch((e) => {
+            if (e.status === 501) {
+                logger.fatal(e.statusText);
+                this.dispose();
+                return;
+            }
             this.retryCount--;
-            log.fatal('url heartbeat failed with');
-            log.fatal(e);
+            logger.fatal('url heartbeat failed with', e);
             if (this.retryCount <= 0) {
-                log.warn('reach max retry count, will dispose player ');
+                logger.warn('reach max retry count, will dispose player ');
                 this.emit(H265PlayerConstants.on_error, e);
                 this.dispose();
             }
             else {
-                log.info('left retry count is: ', `${this.retryCount} / ${this.maxRetryCount} (used / total)`);
-                log.info('retry heartbeat ...');
+                logger.info('left retry count is: ', `${this.retryCount} / ${this.maxRetryCount} (left / total)`);
+                logger.info('retry heartbeat ...');
                 this.timer = window.setTimeout(() => {
                     this.startUrlHeartBeat();
                 }, HEART_BEAT_TIMEOUT);
@@ -152,27 +156,49 @@ export class H265Player extends Emittery {
         });
     }
 }
+/**
+ * 检测一个 URL 是否能够正常访问
+ * @param url 要测试的 url
+ * @param timeout 超时时间
+ * @returns 是否能够正常访问
+ */
 const checkUrlIsValid = (url, timeout = 5 * 1000) => {
     return new Promise((resolve, reject) => {
-        if (!url.includes('m3u8'))
-            return resolve();
+        if (!isValidURL(url) && !url.includes('m3u8')) {
+            // eslint-disable-next-line prefer-promise-reject-errors
+            return reject({
+                status: 501,
+                statusText: 'url is not valid'
+            });
+        }
         axios
             .get(`${url}&__time=${Date.now()}`, {
             responseType: 'blob',
-            timeout,
+            timeout
         })
             .then(resolve)
-            .catch((e) => {
+            .catch(e => {
             if (e.response) {
                 const { status, statusText } = e.response || {};
+                // eslint-disable-next-line prefer-promise-reject-errors
                 reject({ status, statusText });
             }
             else {
+                // eslint-disable-next-line prefer-promise-reject-errors
                 reject({
                     status: 500,
-                    statusText: (e === null || e === void 0 ? void 0 : e.message) || 'network error',
+                    statusText: (e === null || e === void 0 ? void 0 : e.message) || 'network error'
                 });
             }
         });
     });
+};
+/**
+ * 检查一个url是否合法
+ * @param url 待检查的 url
+ * @returns 是否合法
+ */
+export const isValidURL = (url) => {
+    const res = url.match(/(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_+.~#?&//=]*)/g);
+    return res !== null;
 };

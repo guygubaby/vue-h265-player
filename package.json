@@ -1,29 +1,30 @@
 {
   "name": "vue-h265-player",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "private": false,
-  "license": "MIT",
   "description": "Vue.js h265 player using easy-player",
-  "main": "src/components/h265-player/index.js",
   "author": "guygubaby",
-  "keywords": [
-    "video",
-    "h265",
-    "easy-player"
-  ],
   "scripts": {
-    "serve": "tsc -w & vue-cli-service serve",
-    "build": "vue-cli-service build --target lib --name h265-player ./src/components/h265-player/index.js",
+    "serve": "vue-cli-service serve & tsc -w",
+    "build": "vue-cli-service build --target lib --name h265-player src/components/h265-player/index.ts",
     "lint": "vue-cli-service lint"
   },
+  "main": "src/components/h265-player/index.js",
+  "module": "src/components/h265-player/index.js",
+  "files": [
+    "src/*"
+  ],
   "dependencies": {
     "@easydarwin/easywasmplayer": "^4.0.10",
     "axios": "^0.21.1",
     "emittery": "^0.8.1",
+    "logt": "^1.4.1",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@types/uuid": "^8.3.0",
+    "@typescript-eslint/eslint-plugin": "^2.33.0",
+    "@typescript-eslint/parser": "^2.33.0",
     "@vue/cli-plugin-babel": "~4.5.0",
     "@vue/cli-plugin-eslint": "~4.5.0",
     "@vue/cli-service": "~4.5.0",
@@ -51,9 +52,7 @@
       "plugin:vue/essential",
       "@vue/standard"
     ],
-    "parserOptions": {
-      "parser": "babel-eslint"
-    },
+    "parserOptions": {},
     "rules": {}
   },
   "browserslist": [
@@ -61,12 +60,14 @@
     "last 2 versions",
     "not dead"
   ],
+  "keywords": [
+    "video",
+    "h265",
+    "easy-player"
+  ],
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/guygubaby/vue-h265-player.git"
-  },
-  "files": [
-    "src/*"
-  ],
-  "module": "src/components/h265-player/index.js"
+  }
 }
