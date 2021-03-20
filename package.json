@@ -1,6 +1,6 @@
 {
   "name": "vue-h265-player",
-  "version": "0.0.21",
+  "version": "0.0.22",
   "private": false,
   "description": "Vue.js h265 player using easy-player",
   "author": "guygubaby",
