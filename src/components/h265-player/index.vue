@@ -91,6 +91,12 @@ export default {
         this.player = null
       }
     })
+    this.$once('hook:deactivated', () => {
+      if (this.player) {
+        this.player.dispose()
+        this.player = null
+      }
+    })
   }
 }
 </script>
